@@ -13,6 +13,13 @@ from trainer.utils import transformer
 from save_method import save_synthesized_images_labelwise
 
 
+ARCHITECTURES = [
+    'lenet',
+    'resnet',
+    'resmlp'
+]
+
+
 def handle_args():
     parser = argparse.ArgumentParser()
 
@@ -27,20 +34,14 @@ def handle_args():
     parser.add_argument(
         '--teacher',
         type=str,
-        choices=[
-            'lenet',
-            'resmlp'
-        ],
+        choices=ARCHITECTURES,
         default='lenet'
     )
     
     parser.add_argument(
         '--student',
         type=str,
-        choices=[
-            'lenet',
-            'resmlp'
-        ],
+        choices=ARCHITECTURES,
         default='lenet'
     )
 
