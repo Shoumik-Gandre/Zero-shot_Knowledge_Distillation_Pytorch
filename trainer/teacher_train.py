@@ -25,13 +25,14 @@ class TeacherTrainer:
         train_dataset: Dataset,
         eval_dataset: Dataset,
         model_path: Path,
+        device=torch.device('cuda')
     ):
 
         self.acc = 0
 
         self.model_path = model_path
         
-        self.net = model
+        self.net = model.to(device)
         self.hyperparams = hyperparams
 
         self.train_dataloader = DataLoader(
@@ -47,14 +48,15 @@ class TeacherTrainer:
         )
 
         self.criterion = torch.nn.CrossEntropyLoss()
+        self.device = device
 
     def train_step(self, epoch):
         """Train step for teacher"""
 
         self.net.train()
         for i, (images, labels) in enumerate(pbar := tqdm(self.train_dataloader)):
-            images = images.to(self.net.device)
-            labels = labels.to(self.net.device)
+            images = images.to(self.device)
+            labels = labels.to(self.device)
 
             self.hyperparams.optimizer.zero_grad()
             output = self.net(images)
@@ -73,8 +75,8 @@ class TeacherTrainer:
         avg_loss = 0.0
         with torch.no_grad():
             for i, (images, labels) in enumerate(self.eval_dataloader):
-                images = images.cuda()
-                labels = labels.cuda()
+                images = images.to(self.device)
+                labels = labels.to(self.device)
                 output = self.net(images)
                 avg_loss += self.criterion(output, labels).sum()
                 pred = output.argmax(dim=1)
