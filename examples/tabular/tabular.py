@@ -150,8 +150,8 @@ def main():
         
         # Test Dataset
         eval_dataset = TensorDataset(
-            torch.from_numpy(x_eval.to_numpy()),
-            torch.from_numpy(y_eval.to_numpy())
+            torch.from_numpy(x_eval.to_numpy()).type(torch.float),
+            torch.from_numpy(y_eval.to_numpy()).type(torch.long)
         )
         
         teacher_trainer = TeacherTrainer(
