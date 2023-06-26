@@ -1,18 +1,9 @@
 from dataclasses import dataclass
-import os
 from pathlib import Path
 
 import torch
-from torch.autograd import Variable
-from torchvision.datasets.mnist import MNIST
-from torchvision.datasets import CIFAR10, CIFAR100
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-
-# from trainer.lenet import LeNet5
-from architectures.resnet import ResNet34
-from trainer.utils import transformer, adjust_learning_rate
 from torch import nn
 
 

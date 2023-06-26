@@ -110,7 +110,7 @@ def main():
 
     # load teacher network
     if args.train_teacher:
-        teacher = ResMLP(185, 1)
+        teacher = ResMLP(185, 2)
         teacher_trainer_hyperparams = TeacherTrainerHyperparams(
             epochs=10, 
             batch_size=256, 
@@ -167,7 +167,7 @@ def main():
         print('[END] Train Teacher Model')
 
     teacher = torch.load(args.teacher_path)
-    student = ResMLP(185, 1)
+    student = ResMLP(185, 2)
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
