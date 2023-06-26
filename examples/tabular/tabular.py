@@ -108,6 +108,43 @@ def main():
 
     args = handle_args()
 
+        # Load Csv
+    df = pd.read_csv(args.real_data_path, index_col=0)
+    inputs = df[df.columns[df.columns != 'target']]
+    labels = df['target']
+    
+    categorical_columns = [
+        column for column in inputs.columns 
+        if inputs[column].dtype != 'float64' and column != 'f_27'
+    ]
+    numerical_columns = [
+        column for column in inputs.columns 
+        if inputs[column].dtype == 'float64'
+    ]
+
+    preprocess = ColumnTransformer(
+        [
+            ('categorical_columns', OneHotEncoder(drop='first', sparse_output=False), categorical_columns),
+            ('numerical_columns', FunctionTransformer(lambda col: col, feature_names_out='one-to-one'), numerical_columns)
+        ],
+        remainder='drop'
+    )
+    preprocess.set_output(transform='pandas')
+    preprocess.fit(inputs, labels)
+    inputs: pd.DataFrame = preprocess.transform(inputs)  # type: ignore
+    x_train, x_eval, y_train, y_eval = train_test_split(inputs, labels, test_size=0.25, random_state=0)
+    # Train Dataset
+    train_dataset = TensorDataset(
+        torch.from_numpy(x_train.to_numpy()).type(torch.float),
+        torch.from_numpy(y_train.to_numpy()).type(torch.long)
+    )
+    
+    # Test Dataset
+    eval_dataset = TensorDataset(
+        torch.from_numpy(x_eval.to_numpy()).type(torch.float),
+        torch.from_numpy(y_eval.to_numpy()).type(torch.long)
+    )
+
     # load teacher network
     if args.train_teacher:
         teacher = ResMLP(185, 2)
@@ -115,43 +152,6 @@ def main():
             epochs=10, 
             batch_size=256, 
             optimizer=torch.optim.Adam(teacher.parameters())
-        )
-
-        # Load Csv
-        df = pd.read_csv(args.real_data_path, index_col=0)
-        x = df[df.columns[df.columns != 'target']]
-        y = df['target']
-        
-        categorical_columns = [
-            column for column in x.columns 
-            if x[column].dtype != 'float64' and column != 'f_27'
-        ]
-        numerical_columns = [
-            column for column in x.columns 
-            if x[column].dtype == 'float64'
-        ]
-
-        preprocess = ColumnTransformer(
-            [
-                ('categorical_columns', OneHotEncoder(drop='first', sparse_output=False), categorical_columns),
-                ('numerical_columns', FunctionTransformer(lambda col: col, feature_names_out='one-to-one'), numerical_columns)
-            ],
-            remainder='drop'
-        )
-        preprocess.set_output(transform='pandas')
-        preprocess.fit(x, y)
-        x: pd.DataFrame = preprocess.transform(x)  # type: ignore
-        x_train, x_eval, y_train, y_eval = train_test_split(x, y, test_size=0.25)
-        # Train Dataset
-        train_dataset = TensorDataset(
-            torch.from_numpy(x_train.to_numpy()).type(torch.float),
-            torch.from_numpy(y_train.to_numpy()).type(torch.long)
-        )
-        
-        # Test Dataset
-        eval_dataset = TensorDataset(
-            torch.from_numpy(x_eval.to_numpy()).type(torch.float),
-            torch.from_numpy(y_eval.to_numpy()).type(torch.long)
         )
         
         teacher_trainer = TeacherTrainer(
@@ -183,17 +183,19 @@ def main():
             teacher=teacher.eval(), 
             hyperparams=zskd_hyperparams,
             dimensions=(1, 185),
-            num_classes=10
+            num_classes=2
         )
 
         print('\n[BEGIN] Zero Shot Knowledge Distillation For Image Classification')
         args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(args.synthetic_data_path / 'x.out', 'w+') as x_file, open(args.synthetic_data_path / 'y.out', 'w+') as y_file:
+            for synthetic_batch in zskd.synthesize_batch():
+                x = synthetic_batch[0].detach().cpu().numpy()
+                y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
 
-        for synthetic_batch in zskd.synthesize_batch():
-            x = synthetic_batch[0].detach().cpu()
-            y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
-
-            # Write Save code here for x and y
+                # Write Save code here for x and y
+                np.savetxt(x_file, x)
+                np.savetxt(y_file, y)
         
         print('[END] Zero Shot Knowledge Distillation For Image Classification')
 
@@ -213,25 +215,18 @@ def main():
         )
 
         # Synthetic Dataset
-        synthetic_dataset = torchvision.datasets.ImageFolder(
-            root=args.synthetic_data_path, 
-            transform=transformer(args.dataset)[0]
-        )
-
-        # Test Dataset
-        test_dataset = torchvision.datasets.MNIST(
-                root=args.real_data_path, 
-                train=False, 
-                transform=transformer(args.dataset)[1], 
-                download=True
-        )
+        with open(args.synthetic_data_path / 'x.out', 'r') as x_file, open(args.synthetic_data_path / 'y.out', 'r') as y_file:
+            synthetic_dataset = TensorDataset(
+                torch.from_numpy(np.loadtxt(x_file)).type(torch.float),
+                torch.from_numpy(np.loadtxt(y_file)).type(torch.long)
+            )
 
         student_trainer = StudentTrainer(
             teacher=teacher.eval(),
             student=student,
             model_save_path=args.student_path,
             train_dataset=synthetic_dataset,
-            test_dataset=test_dataset,
+            test_dataset=eval_dataset,
             hyperparams=st_hyperparams
         )
         print('\n[BEGIN] Train Student Model')
