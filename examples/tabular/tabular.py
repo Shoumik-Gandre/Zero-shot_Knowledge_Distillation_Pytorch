@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch.backends.cudnn
-import torchvision
 from torch.utils.data import TensorDataset
 
 from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
@@ -105,6 +104,8 @@ def handle_args():
 
 
 def main():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"[DEVICE] {device}")
 
     args = handle_args()
 
@@ -147,7 +148,7 @@ def main():
 
     # load teacher network
     if args.train_teacher:
-        teacher = ResMLP(185, 2).to('cuda')
+        teacher = ResMLP(185, 2).to(device)
         teacher_trainer_hyperparams = TeacherTrainerHyperparams(
             epochs=10, 
             batch_size=256, 
@@ -166,8 +167,8 @@ def main():
         teacher_trainer.train()
         print('[END] Train Teacher Model')
 
-    teacher = torch.load(args.teacher_path)
-    student = ResMLP(185, 2).to('cuda')
+    teacher = torch.load(args.teacher_path, map_location=device).to(device)
+    student = ResMLP(185, 2).to(device)
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
@@ -182,7 +183,7 @@ def main():
         zskd = ZeroShotKDClassification(
             teacher=teacher.eval(), 
             hyperparams=zskd_hyperparams,
-            dimensions=(1, 185),
+            dimensions=(185,),
             num_classes=2
         )
 
@@ -192,8 +193,6 @@ def main():
             for synthetic_batch in zskd.synthesize_batch():
                 x = synthetic_batch[0].detach().cpu().numpy()
                 y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
-                print(x)
-                print(x.shape)
 
                 # Write Save code here for x and y
                 np.savetxt(x_file, x)
