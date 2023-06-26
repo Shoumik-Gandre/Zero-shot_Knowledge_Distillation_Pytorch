@@ -1,14 +1,16 @@
+import random
 import argparse
 from pathlib import Path
-from utils import *
-from ZSKD import ZeroShotKD, ZeroShotKDHyperparams
+import numpy as np
+import torch.backends.cudnn
+import torchvision
+
+from architectures import get_model
+from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
 from trainer.teacher_train import TeacherTrainer, TeacherTrainerHyperparams
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
-from architectures.resmlp import ResMLP
-from architectures.lenet import LeNet5
-from trainer.utils import transformer, KeepChannelsTransform
-
-import torchvision
+from trainer.utils import transformer
+from save_method import save_synthesized_images_labelwise
 
 
 def handle_args():
@@ -125,15 +127,6 @@ def handle_args():
     return parser.parse_args()
 
 
-def get_model(name: str) -> torch.nn.Module:
-    match name:
-        case 'lenet':
-            return LeNet5()
-        case 'resmlp':
-            return ResMLP(32*32, 10)
-    raise ValueError()
-
-
 def main():
 
     args = handle_args()
@@ -169,12 +162,12 @@ def main():
             model_path=args.teacher_path
         )
         
-        print('-'*30 + ' Train teacher start ' + '-'*30)
+        print('[BEGIN] Train Teacher Model')
         teacher_trainer.train()
-        print('-'*30 + ' Train teacher end ' + '-'*30)
+        print('[END] Train Teacher Model')
 
     teacher = torch.load(args.teacher_path)
-    student = get_model(args.teacher) #ResNet18(in_channels=1)  # ResMLP(32*32, 10)  # LeNet5()
+    student = get_model(args.teacher)  # ResNet18(in_channels=1)  # ResMLP(32*32, 10)  # LeNet5()
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
@@ -186,10 +179,29 @@ def main():
             num_samples=args.num_samples,
             beta=args.beta
         )
-        zskd = ZeroShotKD(teacher.eval(), zskd_hyperparams)
-        print('\n'+'-'*30+' ZSKD start '+'-'*30)
-        zskd.synthesize(args.synthetic_data_path)
-        print('\n'+'-'*30+' ZSKD end '+'-'*30)
+        zskd = ZeroShotKDClassification(
+            teacher=teacher.eval(), 
+            hyperparams=zskd_hyperparams,
+            dimensions=(1, 32, 32),
+            num_classes=10
+        )
+
+        print('\n[BEGIN] Zero Shot Knowledge Distillation For Image Classification')
+        args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
+        file_count_labelwise = np.zeros(10, dtype=int)
+
+        for synthetic_batch in zskd.synthesize_batch():
+            x = synthetic_batch[0].detach().cpu()
+            y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
+            
+            save_synthesized_images_labelwise(
+                inputs=x, 
+                labels=y, 
+                file_counts=file_count_labelwise, 
+                root_dir=args.synthetic_data_path
+            )
+        
+        print('[END] Zero Shot Knowledge Distillation For Image Classification')
 
     if args.train_student:
         # train student network
@@ -198,7 +210,7 @@ def main():
         st_hyperparams = StudentTrainerHyperparams(
             epochs=20,
             batch_size=256,
-            teacher_temperature=1.0,
+            teacher_temperature=20.0,
             optimizer=torch.optim.Adam(
                 params=student.parameters(), 
                 lr=0.01, 
@@ -228,13 +240,21 @@ def main():
             test_dataset=test_dataset,
             hyperparams=st_hyperparams
         )
-        print('-'*30 + ' Train student start ' + '-'*30)
+        print('\n[BEGIN] Train Student Model')
         student_trainer.train()
-        print('-'*30 + ' Train student end ' + '-'*30)
+        print('[END] Train Student Model')
 
 
 if __name__ == "__main__":
-    torch.cuda.set_device(0)
+    # Deterministic Behavior
+    seed = 0
+    torch.cuda.set_device(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     main()
 
 

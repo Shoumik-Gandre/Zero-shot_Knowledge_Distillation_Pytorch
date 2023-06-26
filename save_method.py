@@ -1,12 +1,7 @@
 from pathlib import Path
-from PIL import Image
 import numpy as np
 
 import torch
-
-from architectures.resnet import ResNet34, ResNet18
-from architectures.lenet import LeNet5, LeNet5Half
-from architectures.resmlp import ResMLP
 from torchvision.utils import save_image
 
 

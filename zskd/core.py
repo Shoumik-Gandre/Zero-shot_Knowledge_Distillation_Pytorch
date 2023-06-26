@@ -31,7 +31,7 @@ class ZeroShotKDClassification:
         self.teacher = teacher
         self.hyperparams = hyperparams
 
-    def synthesize(self) -> Iterator[Tuple[torch.Tensor, torch.Tensor]]:
+    def synthesize_batch(self) -> Iterator[Tuple[torch.Tensor, torch.Tensor]]:
         """A Generator function that returns the optimized input value and the sampled dirichlet y values batchwise
         returns: 
         (1) x - Tensor of shape (BATCH_SIZE, *dimensions)

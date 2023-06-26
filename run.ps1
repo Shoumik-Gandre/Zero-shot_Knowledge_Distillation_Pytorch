@@ -1,4 +1,4 @@
-python main2.py `
+python main.py `
     --dataset mnist `
     --teacher lenet `
     --student lenet `
@@ -8,6 +8,6 @@ python main2.py `
     --teacher-path './models/teachers/lenet-mnist.pt' `
     --synthetic-data-path './data/synthetic/mnist-lenet/' `
     --real-data-path './data/real/' `
-    --synthesize-data `
     --train-student `
+    --synthesize-data `
     --train-teacher `
