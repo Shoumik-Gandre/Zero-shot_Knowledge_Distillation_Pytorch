@@ -22,8 +22,8 @@ class ZeroShotKDClassification:
             self,
             teacher: torch.nn.Module,
             hyperparams: ZeroShotKDHyperparams,
-            dimensions: Tuple[int, ...] = (1, 32, 32),
-            num_classes: int = 10,
+            dimensions: Tuple[int, ...],
+            num_classes: int,
             device: torch.device = torch.device('cuda')
         ) -> None:
 
@@ -62,7 +62,6 @@ class ZeroShotKDClassification:
                 assert N.is_integer()  # Divisibility Check
 
                 N = int(N)
-                print(N)
 
                 for _ in range(N):
                    # sampling target label from Dirichlet distribution

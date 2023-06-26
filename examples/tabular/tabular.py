@@ -10,11 +10,10 @@ from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
 
-from architectures import ResMLP
+from architectures.simplemlp import SimpleMLP
 from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
 from trainer.teacher_train import TeacherTrainer, TeacherTrainerHyperparams
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
-from trainer.utils import transformer
 
 
 def handle_args():
@@ -148,7 +147,7 @@ def main():
 
     # load teacher network
     if args.train_teacher:
-        teacher = ResMLP(185, 2).to(device)
+        teacher = SimpleMLP(185, 2).to(device)
         teacher_trainer_hyperparams = TeacherTrainerHyperparams(
             epochs=10, 
             batch_size=256, 
@@ -168,7 +167,7 @@ def main():
         print('[END] Train Teacher Model')
 
     teacher = torch.load(args.teacher_path, map_location=device).to(device)
-    student = ResMLP(185, 2).to(device)
+    student = SimpleMLP(185, 2).to(device)
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
