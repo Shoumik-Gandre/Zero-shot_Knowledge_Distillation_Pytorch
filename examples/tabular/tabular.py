@@ -147,7 +147,7 @@ def main():
 
     # load teacher network
     if args.train_teacher:
-        teacher = ResMLP(185, 2)
+        teacher = ResMLP(185, 2).to('cuda')
         teacher_trainer_hyperparams = TeacherTrainerHyperparams(
             epochs=10, 
             batch_size=256, 
@@ -167,7 +167,7 @@ def main():
         print('[END] Train Teacher Model')
 
     teacher = torch.load(args.teacher_path)
-    student = ResMLP(185, 2)
+    student = ResMLP(185, 2).to('cuda')
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
@@ -186,8 +186,8 @@ def main():
             num_classes=2
         )
 
-        print('\n[BEGIN] Zero Shot Knowledge Distillation For Image Classification')
-        args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
+        print('\n[BEGIN] Zero Shot Knowledge Distillation For Tabular Classification')
+        args.synthetic_data_path.mkdir(parents=True, exist_ok=True)
         with open(args.synthetic_data_path / 'x.out', 'w+') as x_file, open(args.synthetic_data_path / 'y.out', 'w+') as y_file:
             for synthetic_batch in zskd.synthesize_batch():
                 x = synthetic_batch[0].detach().cpu().numpy()
@@ -197,7 +197,7 @@ def main():
                 np.savetxt(x_file, x)
                 np.savetxt(y_file, y)
         
-        print('[END] Zero Shot Knowledge Distillation For Image Classification')
+        print('[END] Zero Shot Knowledge Distillation For Tabular Classification')
 
     if args.train_student:
         # train student network
