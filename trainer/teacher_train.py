@@ -31,7 +31,7 @@ class TeacherTrainer:
 
         self.model_path = model_path
         
-        self.net = model.cuda()
+        self.net = model
         self.hyperparams = hyperparams
 
         self.train_dataloader = DataLoader(
@@ -46,15 +46,15 @@ class TeacherTrainer:
             num_workers=0
         )
 
-        self.criterion = torch.nn.CrossEntropyLoss().cuda()
+        self.criterion = torch.nn.CrossEntropyLoss()
 
     def train_step(self, epoch):
         """Train step for teacher"""
 
         self.net.train()
         for i, (images, labels) in enumerate(pbar := tqdm(self.train_dataloader)):
-            images = images.cuda()
-            labels = labels.cuda()
+            images = images.to(self.net.device)
+            labels = labels.to(self.net.device)
 
             self.hyperparams.optimizer.zero_grad()
             output = self.net(images)

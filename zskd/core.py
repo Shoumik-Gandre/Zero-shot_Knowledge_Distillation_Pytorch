@@ -24,12 +24,14 @@ class ZeroShotKDClassification:
             hyperparams: ZeroShotKDHyperparams,
             dimensions: Tuple[int, ...] = (1, 32, 32),
             num_classes: int = 10,
+            device: torch.device = torch.device('cuda')
         ) -> None:
 
         self.dimensions = dimensions 
         self.num_classes = num_classes
         self.teacher = teacher
         self.hyperparams = hyperparams
+        self.device = device
 
     def synthesize_batch(self) -> Iterator[Tuple[torch.Tensor, torch.Tensor]]:
         """A Generator function that returns the optimized input value and the sampled dirichlet y values batchwise
@@ -60,6 +62,7 @@ class ZeroShotKDClassification:
                 assert N.is_integer()  # Divisibility Check
 
                 N = int(N)
+                print(N)
 
                 for _ in range(N):
                    # sampling target label from Dirichlet distribution
@@ -72,14 +75,16 @@ class ZeroShotKDClassification:
                     y: torch.Tensor = (
                         dirichlet_distribution
                             .rsample((self.hyperparams.batch_size,)) 
-                    )
+                    ).to(self.device)
 
                     # optimization for images
                     inputs = (
                         torch
-                            .randn(size=(self.hyperparams.batch_size, *self.dimensions))
-                            .cuda()
-                            .requires_grad_()
+                            .randn(
+                                size=(self.hyperparams.batch_size, *self.dimensions),
+                                requires_grad=True,
+                                device=self.device
+                            )
                     )
                     optimizer = torch.optim.Adam([inputs], self.hyperparams.learning_rate)
                     self.teacher.eval()
