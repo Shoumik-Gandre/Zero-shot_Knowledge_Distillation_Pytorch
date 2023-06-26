@@ -1,7 +1,7 @@
 # Zero-Shot Knowledge Distillation in Deep Networks Pytorch
 
-![Python version support](https://img.shields.io/badge/python-3.6-blue.svg)
-![PyTorch version support](https://img.shields.io/badge/pytorch-1.7.0-red.svg)
+![Python version support](https://img.shields.io/badge/python-3.10.4-blue.svg)
+![PyTorch version support](https://img.shields.io/badge/pytorch-1.13.0-red.svg)
 
 :star: Star us on GitHub — it helps!!
 
