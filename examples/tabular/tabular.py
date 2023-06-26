@@ -192,6 +192,8 @@ def main():
             for synthetic_batch in zskd.synthesize_batch():
                 x = synthetic_batch[0].detach().cpu().numpy()
                 y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
+                print(x)
+                print(x.shape)
 
                 # Write Save code here for x and y
                 np.savetxt(x_file, x)
