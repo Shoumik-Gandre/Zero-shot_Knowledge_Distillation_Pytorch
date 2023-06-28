@@ -12,10 +12,10 @@ def get_model(name: str) -> torch.nn.Module:
         case 'resmlp':
             return ResMLP(32*32, 10)
         case 'resnet':
-            return ResNet18(10, 1) 
+            return ResNet18(10, 2) 
         case 'rtdl-resnet':
             return rtdl.ResNet.make_baseline(
-                d_in=185,
+                d_in=32*32,
                 d_main=128,
                 d_hidden=256,
                 dropout_first=0.2,
