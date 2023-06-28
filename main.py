@@ -192,7 +192,8 @@ def main():
         args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
         file_count_labelwise = np.zeros(10, dtype=int)
 
-        for synthetic_batch in zskd.synthesize_batch():
+        for batch_idx, synthetic_batch in enumerate(zskd.synthesize_batch()):
+            print(f"Batch [{batch_idx + 1}/{zskd_hyperparams.num_samples // zskd_hyperparams.batch_size}]")
             x = synthetic_batch[0].detach().cpu()
             y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
             
