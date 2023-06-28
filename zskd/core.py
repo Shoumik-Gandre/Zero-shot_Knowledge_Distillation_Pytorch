@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from zskd.class_sim_matrix import compute_class_similarity_matrix
 from zskd.hyperparams import ZeroShotKDHyperparams
-from zskd.classifier_weights import extract_classifier_weights
+from zskd.classifier_weights import extract_classifier_weights2
 
 
 class ZeroShotKDClassification:
@@ -41,7 +41,7 @@ class ZeroShotKDClassification:
         """
 
         # Get Classifier Weights
-        classifier_weights = extract_classifier_weights(self.teacher)
+        classifier_weights = extract_classifier_weights2(self.teacher)
         class_similarity_matrix = (
             compute_class_similarity_matrix(classifier_weights)
                 .clamp(min=1e-6, max=1.0)
