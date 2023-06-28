@@ -7,7 +7,7 @@ import torchvision
 
 from architectures import get_model
 from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
-from trainer.teacher_train import TeacherTrainer, TeacherTrainerHyperparams
+from trainer.teacher_train import TeacherTrainerHyperparams, TeacherTrainer
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
 from trainer.utils import transformer
 from save_method import save_synthesized_images_labelwise
@@ -16,7 +16,8 @@ from save_method import save_synthesized_images_labelwise
 ARCHITECTURES = [
     'lenet',
     'resnet',
-    'resmlp'
+    'resmlp',
+    'rtdl-resnet'
 ]
 
 
