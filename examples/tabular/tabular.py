@@ -15,6 +15,8 @@ from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
 from trainer.teacher_train import TeacherTrainer, TeacherTrainerHyperparams
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
 
+import rtdl
+
 
 def handle_args():
     parser = argparse.ArgumentParser()
@@ -147,7 +149,15 @@ def main():
 
     # load teacher network
     if args.train_teacher:
-        teacher = SimpleMLP(185, 2).to(device)
+        teacher = rtdl.ResNet.make_baseline(
+                d_in=185,
+                d_main=128,
+                d_hidden=256,
+                dropout_first=0.2,
+                dropout_second=0.0,
+                n_blocks=2,
+                d_out=2,
+            ).to(device)
         teacher_trainer_hyperparams = TeacherTrainerHyperparams(
             epochs=10, 
             batch_size=256, 
@@ -167,7 +177,15 @@ def main():
         print('[END] Train Teacher Model')
 
     teacher = torch.load(args.teacher_path, map_location=device).to(device)
-    student = SimpleMLP(185, 2).to(device)
+    student = rtdl.ResNet.make_baseline(
+                d_in=185,
+                d_main=128,
+                d_hidden=256,
+                dropout_first=0.2,
+                dropout_second=0.0,
+                n_blocks=2,
+                d_out=2,
+            ).to(device)
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
