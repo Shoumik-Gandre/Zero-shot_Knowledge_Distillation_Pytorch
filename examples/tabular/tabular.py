@@ -221,13 +221,13 @@ def main():
 
         # Set Hyperparameters
         st_hyperparams = StudentTrainerHyperparams(
-            epochs=20,
+            epochs=100,
             batch_size=256,
             teacher_temperature=20.0,
             optimizer=torch.optim.Adam(
                 params=student.parameters(), 
-                lr=0.01, 
-                weight_decay=1e-4
+                lr=0.001, 
+                # weight_decay=1e-4
             )
         )
 
