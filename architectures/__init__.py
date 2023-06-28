@@ -21,6 +21,6 @@ def get_model(name: str) -> torch.nn.Module:
                 dropout_first=0.2,
                 dropout_second=0.0,
                 n_blocks=2,
-                d_out=2,
+                d_out=10,
             )
     raise ValueError()
