@@ -10,7 +10,6 @@ from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
 
-from architectures.simplemlp import SimpleMLP
 from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
 from trainer.teacher_train import TeacherTrainer, TeacherTrainerHyperparams
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
