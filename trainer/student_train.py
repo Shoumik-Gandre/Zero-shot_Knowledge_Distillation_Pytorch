@@ -78,7 +78,7 @@ class StudentTrainer:
 
                 outputs = F.softmax(self.student(images), dim=1)
 
-                avg_loss += self.criterion_test(outputs, labels).item()
+                avg_loss += self.criterion_test(outputs, labels)
                 prediction = outputs.argmax(dim=1)
                 total_correct += prediction.eq(labels.data.view_as(prediction)).sum()
 
