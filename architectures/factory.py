@@ -1,5 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
+from functools import reduce
+import operator
 from typing import Mapping, Tuple
 from torch import nn
 
@@ -25,7 +27,7 @@ class ArchitectureFactory:
                 return ResNet18(self.output_dims, self.input_dims[0]) 
             case 'rtdl-resnet':
                 return RTDLResNet.make_baseline(
-                    d_in=sum(self.input_dims),
+                    d_in=reduce(operator.mul, (self.input_dims)),
                     d_main=128,
                     d_hidden=256,
                     dropout_first=0.2,
