@@ -5,7 +5,6 @@ import numpy as np
 import torch.backends.cudnn
 import torchvision
 
-from architectures import get_model
 from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
 from trainer.teacher_train import TeacherTrainerHyperparams, TeacherTrainer
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
