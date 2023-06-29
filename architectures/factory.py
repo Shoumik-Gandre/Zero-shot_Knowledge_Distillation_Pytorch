@@ -22,7 +22,7 @@ class ArchitectureFactory:
             case 'lenet':
                 return LeNet5()
             case 'resmlp':
-                return ResMLP(sum(self.input_dims), self.output_dims)
+                return ResMLP(reduce(operator.mul, (self.input_dims)), self.output_dims)
             case 'resnet':
                 return ResNet18(self.output_dims, self.input_dims[0]) 
             case 'rtdl-resnet':
