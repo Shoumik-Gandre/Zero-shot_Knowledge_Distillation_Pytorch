@@ -5,12 +5,13 @@ import numpy as np
 import torch.backends.cudnn
 import torchvision
 
-from architectures import get_model, ArchitectureFactory
+from architectures import get_model
 from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
 from trainer.teacher_train import TeacherTrainerHyperparams, TeacherTrainer
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
 from trainer.utils import transformer
 from save_method import save_synthesized_images_labelwise
+from architectures import ArchitectureFactory
 
 
 ARCHITECTURES = [
@@ -129,9 +130,37 @@ def handle_args():
     return parser.parse_args()
 
 
-def main():
+def get_dataset(name: str, train: bool, data_path):
+    match name:
+        case 'mnist':
+            train_transforms, test_transforms = transformer('mnist')
+            if train:
+                return torchvision.datasets.MNIST(
+                    root=data_path, 
+                    train=True, 
+                    transform=train_transforms, 
+                    download=True
+                ) 
+            else:
+                return torchvision.datasets.MNIST(
+                    root=data_path, 
+                    train=False, 
+                    transform=test_transforms, 
+                    download=True
+                )
 
+
+def main():
     args = handle_args()
+    # Deterministic Behavior
+    seed = 0
+    torch.cuda.set_device(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     teacher_factory = ArchitectureFactory(
         name=args.teacher, 
@@ -144,15 +173,10 @@ def main():
         input_dims=(1, 32, 32), 
         output_dims=10
     )
-    
+
     # load teacher network
     if args.train_teacher:
-        teacher = get_model(args.teacher)  # ResNet18(in_channels=1)  # ResMLP(32*32, 10)  # LeNet5()
-        teacher_trainer_hyperparams = TeacherTrainerHyperparams(
-            epochs=10, 
-            batch_size=256, 
-            optimizer=torch.optim.Adam(teacher.parameters())
-        )
+        teacher = teacher_factory.produce()
 
         # Test Dataset
         train_dataset = torchvision.datasets.MNIST(
@@ -168,6 +192,13 @@ def main():
                 transform=transformer(args.dataset)[1], 
                 download=True
         )
+
+        teacher_trainer_hyperparams = TeacherTrainerHyperparams(
+            epochs=10, 
+            batch_size=256, 
+            optimizer=torch.optim.Adam(teacher.parameters())
+        )
+        
         teacher_trainer = TeacherTrainer(
             model=teacher,
             hyperparams=teacher_trainer_hyperparams,
@@ -181,7 +212,7 @@ def main():
         print('[END] Train Teacher Model')
 
     teacher = torch.load(args.teacher_path)
-    student = get_model(args.teacher)  # ResNet18(in_channels=1)  # ResMLP(32*32, 10)  # LeNet5()
+    student = student_factory.produce()
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
@@ -226,11 +257,7 @@ def main():
             epochs=20,
             batch_size=256,
             teacher_temperature=20.0,
-            optimizer=torch.optim.Adam(
-                params=student.parameters(), 
-                lr=0.01, 
-                weight_decay=1e-4
-            )
+            optimizer=torch.optim.Adam(params=student.parameters())
         )
 
         # Synthetic Dataset
@@ -240,11 +267,11 @@ def main():
         )
 
         # Test Dataset
-        test_dataset = torchvision.datasets.MNIST(
-                root=args.real_data_path, 
-                train=False, 
-                transform=transformer(args.dataset)[1], 
-                download=True
+        eval_dataset = torchvision.datasets.MNIST(
+            root=args.real_data_path, 
+            train=False, 
+            transform=transformer(args.dataset)[1], 
+            download=True
         )
 
         student_trainer = StudentTrainer(
@@ -252,7 +279,7 @@ def main():
             student=student,
             model_save_path=args.student_path,
             train_dataset=synthetic_dataset,
-            test_dataset=test_dataset,
+            test_dataset=eval_dataset,
             hyperparams=st_hyperparams
         )
         print('\n[BEGIN] Train Student Model')
@@ -261,14 +288,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # Deterministic Behavior
-    seed = 0
-    torch.cuda.set_device(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
     main()
 
