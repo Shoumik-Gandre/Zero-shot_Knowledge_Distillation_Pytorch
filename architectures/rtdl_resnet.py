@@ -229,8 +229,6 @@ class ResNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x.flatten(1, -1)
-        print(f" Shape of S: {x.shape}")
-        print(f" Shape of first layer: {self.first_layer.weight.shape}")
         x = self.first_layer(x)
         x = self.blocks(x)
         if self.head is not None:
