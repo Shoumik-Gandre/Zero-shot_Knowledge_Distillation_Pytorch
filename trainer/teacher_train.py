@@ -78,7 +78,7 @@ class TeacherTrainer:
                 images = images.to(self.device)
                 labels = labels.to(self.device)
                 output = self.net(images)
-                avg_loss += self.criterion(output, labels).sum()
+                avg_loss += self.criterion(output, labels)
                 pred = output.argmax(dim=1)
                 total_correct += pred.eq(labels.data.view_as(pred)).sum()
 
