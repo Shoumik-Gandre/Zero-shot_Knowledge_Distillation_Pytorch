@@ -47,7 +47,7 @@ class StudentTrainer:
             num_workers=0
         )
         self.hyperparams = hyperparams
-        self.criterion_train = torch.nn.BCELoss()
+        self.criterion_train = torch.nn.KLDivLoss()
         self.criterion_test = torch.nn.CrossEntropyLoss()
         self.acc = 0.0
         self.device = device

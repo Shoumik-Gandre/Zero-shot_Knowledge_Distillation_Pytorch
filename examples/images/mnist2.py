@@ -214,7 +214,7 @@ def main():
             hyperparams=zskd_hyperparams,
             dimensions=input_dims,
             num_classes=num_labels,
-            transfer_criterion=torch.nn.KLDivLoss(),
+            transfer_criterion=torch.nn.BCELoss(),
             extract_classifier_weights=extract_classifier_weights,
             device=device
         )
