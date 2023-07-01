@@ -5,7 +5,9 @@ import numpy as np
 import torch.backends.cudnn
 import torchvision
 
-from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
+from zskd import ZeroShotKDHyperparams
+from zskd.core2 import ZeroShotKDClassification
+from zskd.classifier_weights import extract_classifier_weights
 from trainer.teacher_train import TeacherTrainerHyperparams, TeacherTrainer
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
 from trainer.utils import transformer
@@ -129,26 +131,6 @@ def handle_args():
     return parser.parse_args()
 
 
-def get_dataset(name: str, train: bool, data_path):
-    match name:
-        case 'mnist':
-            train_transforms, test_transforms = transformer('mnist')
-            if train:
-                return torchvision.datasets.MNIST(
-                    root=data_path, 
-                    train=True, 
-                    transform=train_transforms, 
-                    download=True
-                ) 
-            else:
-                return torchvision.datasets.MNIST(
-                    root=data_path, 
-                    train=False, 
-                    transform=test_transforms, 
-                    download=True
-                )
-
-
 def main():
     args = handle_args()
     # Deterministic Behavior
@@ -230,15 +212,18 @@ def main():
         zskd = ZeroShotKDClassification(
             teacher=teacher.eval(), 
             hyperparams=zskd_hyperparams,
-            dimensions=(1, 32, 32),
-            num_classes=10
+            dimensions=input_dims,
+            num_classes=num_labels,
+            transfer_criterion=torch.nn.BCELoss(),
+            extract_classifier_weights=extract_classifier_weights,
+            device=device
         )
 
         print('\n[BEGIN] Zero Shot Knowledge Distillation For Image Classification')
         args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
         file_count_labelwise = np.zeros(10, dtype=int)
 
-        for batch_idx, synthetic_batch in enumerate(zskd.synthesize_batch()):
+        for batch_idx, synthetic_batch in enumerate(zskd.itersynthesize()):
             print(f"Batch [{batch_idx + 1}/{zskd_hyperparams.num_samples // zskd_hyperparams.batch_size}]")
             x = synthetic_batch[0].detach().cpu()
             y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
@@ -257,7 +242,7 @@ def main():
 
         # Set Hyperparameters
         st_hyperparams = StudentTrainerHyperparams(
-            epochs=20,
+            epochs=args.temperature,
             batch_size=256,
             teacher_temperature=args.temperature,
             optimizer=torch.optim.Adam(params=student.parameters())
@@ -283,7 +268,8 @@ def main():
             model_save_path=args.student_path,
             train_dataset=synthetic_dataset,
             test_dataset=eval_dataset,
-            hyperparams=st_hyperparams
+            hyperparams=st_hyperparams,
+            device=device
         )
         print('\n[BEGIN] Train Student Model')
         student_trainer.train()
