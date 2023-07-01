@@ -47,7 +47,7 @@ class StudentTrainer:
             num_workers=0
         )
         self.hyperparams = hyperparams
-        self.criterion_train = torch.nn.KLDivLoss()
+        self.criterion_train = torch.nn.KLDivLoss(reduction='batchmean')
         self.criterion_test = torch.nn.CrossEntropyLoss()
         self.acc = 0.0
         self.device = device
@@ -59,7 +59,7 @@ class StudentTrainer:
             images = images.to(self.device) 
             labels = labels.to(self.device)
             teacher_output = F.softmax(self.teacher(images) / self.hyperparams.teacher_temperature, dim=1)
-            student_output = F.softmax(self.student(images), dim=1)
+            student_output = F.log_softmax(self.student(images), dim=1)
 
             self.hyperparams.optimizer.zero_grad()
             loss = self.criterion_train(student_output, teacher_output.detach())

@@ -222,7 +222,6 @@ def main():
         print('\n[BEGIN] Zero Shot Knowledge Distillation For Image Classification')
         args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
         file_count_labelwise = np.zeros(10, dtype=int)        
-        print('[END] Zero Shot Knowledge Distillation For Image Classification')
 
         for batch_idx, synthetic_batch in enumerate(zskd.iter_synthesize()):
             print(f"Batch [{batch_idx + 1}/{zskd_hyperparams.num_samples // zskd_hyperparams.batch_size}]")
