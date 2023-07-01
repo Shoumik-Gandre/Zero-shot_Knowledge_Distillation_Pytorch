@@ -240,14 +240,6 @@ def main():
     if args.train_student:
         # train student network
 
-        # Set Hyperparameters
-        st_hyperparams = StudentTrainerHyperparams(
-            epochs=args.temperature,
-            batch_size=256,
-            teacher_temperature=args.temperature,
-            optimizer=torch.optim.Adam(params=student.parameters())
-        )
-
         # Synthetic Dataset
         synthetic_dataset = torchvision.datasets.ImageFolder(
             root=args.synthetic_data_path, 
@@ -260,6 +252,14 @@ def main():
             train=False, 
             transform=transformer(args.dataset)[1], 
             download=True
+        )
+
+        # Set Hyperparameters
+        st_hyperparams = StudentTrainerHyperparams(
+            epochs=20,
+            batch_size=256,
+            teacher_temperature=args.temperature,
+            optimizer=torch.optim.Adam(params=student.parameters())
         )
 
         student_trainer = StudentTrainer(
