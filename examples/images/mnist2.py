@@ -214,16 +214,17 @@ def main():
             hyperparams=zskd_hyperparams,
             dimensions=input_dims,
             num_classes=num_labels,
-            transfer_criterion=torch.nn.BCELoss(),
+            transfer_criterion=torch.nn.KLDivLoss(),
             extract_classifier_weights=extract_classifier_weights,
             device=device
         )
 
         print('\n[BEGIN] Zero Shot Knowledge Distillation For Image Classification')
         args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
-        file_count_labelwise = np.zeros(10, dtype=int)
+        file_count_labelwise = np.zeros(10, dtype=int)        
+        print('[END] Zero Shot Knowledge Distillation For Image Classification')
 
-        for batch_idx, synthetic_batch in enumerate(zskd.itersynthesize()):
+        for batch_idx, synthetic_batch in enumerate(zskd.iter_synthesize()):
             print(f"Batch [{batch_idx + 1}/{zskd_hyperparams.num_samples // zskd_hyperparams.batch_size}]")
             x = synthetic_batch[0].detach().cpu()
             y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()

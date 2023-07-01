@@ -71,7 +71,7 @@ class ZeroShotKDClassification:
         return inputs, y.detach()
 
 
-    def itersynthesize(self) -> Iterator[Tuple[torch.Tensor, torch.Tensor]]:
+    def iter_synthesize(self) -> Iterator[Tuple[torch.Tensor, torch.Tensor]]:
         """A Generator function that returns the optimized input value and the sampled dirichlet y values batchwise
         returns: 
         (1) x - Tensor of shape (BATCH_SIZE, *dimensions)
@@ -102,3 +102,30 @@ class ZeroShotKDClassification:
 
                 for _ in range(N):
                     yield self.synthesize_batch(concentration)
+
+    
+    def iter_concentrations(self) -> Iterator[torch.Tensor]:
+        # Get Classifier Weights
+        classifier_weights = self.extract_classifier_weights(self.teacher)
+        class_similarity_matrix = (
+            compute_class_similarity_matrix(classifier_weights)
+                .clamp(min=1e-6, max=1.0)
+        )
+
+        # Generate Synthetic Images
+        for label in range(self.num_classes):
+            for beta in self.hyperparams.beta:
+                concentration = beta * class_similarity_matrix[label]
+
+                # Samples per label, batch and beta
+                N = (
+                    self.hyperparams.num_samples 
+                    / len(self.hyperparams.beta) 
+                    / self.hyperparams.batch_size 
+                    / self.num_classes
+                )
+                assert N.is_integer()  # Divisibility Check
+                N = int(N)
+
+                for _ in range(N):
+                    yield concentration
