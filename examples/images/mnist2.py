@@ -95,14 +95,14 @@ def main():
         train_dataset = torchvision.datasets.MNIST(
             root=args.real_data_path, 
             train=True, 
-            transform=transformer(args.dataset)[0], 
+            transform=transformer('mnist')[0], 
             download=True
         )
         # Test Dataset
         eval_dataset = torchvision.datasets.MNIST(
             root=args.real_data_path, 
             train=False, 
-            transform=transformer(args.dataset)[1], 
+            transform=transformer('mnist')[1], 
             download=True
         )
 
@@ -169,14 +169,14 @@ def main():
         # Synthetic Dataset
         synthetic_dataset = torchvision.datasets.ImageFolder(
             root=args.synthetic_data_path, 
-            transform=transformer(args.dataset)[0]
+            transform=transformer('mnist')[0]
         )
 
         # Test Dataset
         eval_dataset = torchvision.datasets.MNIST(
             root=args.real_data_path, 
             train=False, 
-            transform=transformer(args.dataset)[1], 
+            transform=transformer('mnist')[1], 
             download=True
         )
 
