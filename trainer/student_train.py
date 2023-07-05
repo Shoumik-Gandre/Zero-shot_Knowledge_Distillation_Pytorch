@@ -1,10 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-
-import torchvision
 import torch
-from torch.autograd import Variable
-from torchvision.datasets import MNIST, CIFAR10, CIFAR100
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 from tqdm import tqdm 
@@ -32,8 +28,7 @@ class StudentTrainer:
         ):
         self.teacher = teacher.to(device)
         self.student = student.to(device)
-        self.save_path = model_save_path
-        model_save_path.parent.mkdir(parents=True, exist_ok=True)
+        self.model_save_path = model_save_path
 
         self.train_dataloader = DataLoader(
             dataset=train_dataset, 
@@ -49,7 +44,6 @@ class StudentTrainer:
         self.hyperparams = hyperparams
         self.criterion_train = torch.nn.KLDivLoss(reduction='batchmean')
         self.criterion_test = torch.nn.CrossEntropyLoss()
-        self.acc = 0.0
         self.device = device
 
     def train_step(self):
@@ -92,4 +86,5 @@ class StudentTrainer:
             print(f"Epoch [{epoch}/{self.hyperparams.epochs}]")
             self.train_step()
             self.eval_step()
-        torch.save(self.student, self.save_path)
+        self.model_save_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(self.student, self.model_save_path)

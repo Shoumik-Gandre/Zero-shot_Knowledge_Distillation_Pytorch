@@ -5,8 +5,8 @@ import numpy as np
 import torch.backends.cudnn
 import torchvision
 
-from zskd import ZeroShotKDHyperparams
-from zskd.core2 import ZeroShotKDClassification
+from zskd import DataImpressionHyperparams
+from zskd.synthesize import DataImpressionSynthesizer
 from zskd.classifier_weights import extract_classifier_weights
 from trainer.teacher_train import TeacherTrainerHyperparams, TeacherTrainer
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
@@ -19,114 +19,51 @@ ARCHITECTURES = [
     'lenet',
     'resnet',
     'resmlp',
-    'rtdl-resnet'
 ]
 
 
 def handle_args():
+    """
+    There are three stages for this project for Zero-Shot Knowledge Distillation: 
+    1. pretrain: Obtain a pretrained model.
+        Dependencies:
+        - teacher network architecture
+        - real data path for training the teacher
+    2. synthesize: Generate Data Impressions
+        Dependencies:
+        - teacher network architecture
+        - path to pretrained teacher model
+        - data impression hyperparameters
+        - synthetic data path to save the data
+    3. distill: Use data impressions in knowledge distillation training for student network.
+        Dependencies:
+        - Real Data Path for evaluating the trained student network
+        - Synthetic Data Path for performing knowledge distillation
+        - teacher network architecture
+        - path to pretrained teacher model
+        - student network architecture
+        - path to save student model
+    """
     parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        '--dataset', 
-        type=str,
-        default='cifar10', 
-        choices=['mnist', 'cifar10', 'cifar100'],
-        help='Select the dataset'
-    )
-
-    parser.add_argument(
-        '--teacher',
-        type=str,
-        choices=ARCHITECTURES,
-        default='lenet'
-    )
-    
-    parser.add_argument(
-        '--student',
-        type=str,
-        choices=ARCHITECTURES,
-        default='lenet'
-    )
-
-    parser.add_argument(
-        '--num-samples', 
-        type=int, 
-        default=24000,
-        help='Number of DIs crafted per category'
-    )
-    parser.add_argument(
-        '--beta', 
-        type=list,
-        default=[0.1, 1.], 
-        help='Beta scaling vectors'
-    )
-
-    parser.add_argument(
-        '--temperature', 
-        type=float, 
-        default=20,
-        help='Temperature for distillation'
-    )
-
-    parser.add_argument(
-        '--batch-size', 
-        type=int,
-        default=100, 
-        help='batch_size'
-    )
-
-    parser.add_argument(
-        '--lr', 
-        type=float, 
-        default=0.01, 
-        help='learning rate'
-    )
-
-    parser.add_argument(
-        '--iterations', 
-        type=int, 
-        default=1500,
-        help='number of iterations to optimize a batch of data impressions'
-    )
-
-    parser.add_argument(
-        '--student-path', 
-        type=Path,
-        help='save path for student network'
-    )
-
-    parser.add_argument(
-        '--teacher-path',
-        type=Path,
-    )
-
-    parser.add_argument(
-        '--synthetic-data-path',
-        type=Path
-    )
-
-    parser.add_argument(
-        '--real-data-path',
-        type=Path
-    )
-
-    parser.add_argument(
-        '--train-teacher', 
-        action=argparse.BooleanOptionalAction, 
-        help='Set flag to Train teacher network'
-    )
-
-    parser.add_argument(
-        '--synthesize-data', 
-        action=argparse.BooleanOptionalAction,
-        help='generate synthesized images from ZSKD??'
-    )
-
-    parser.add_argument(
-        '--train-student', 
-        action=argparse.BooleanOptionalAction, 
-        help='Set flag to Train student network'
-    )
+    # Architectures
+    parser.add_argument('--teacher', type=str, choices=ARCHITECTURES, default='lenet')
+    parser.add_argument('--student', type=str, choices=ARCHITECTURES, default='lenet')
+    # Data Impression Hyperparameters
+    parser.add_argument('--num-samples', type=int, default=24000, help='Number of DIs crafted per category')
+    parser.add_argument('--beta', nargs='+', default=[0.1, 1.], help='Beta scaling vectors')
+    parser.add_argument('--temperature', type=float, default=20.0, help='Temperature for distillation')
+    parser.add_argument('--batch-size', type=int, default=100, help='batch_size')
+    parser.add_argument('--lr', type=float, default=0.01, help='learning rate')
+    parser.add_argument('--iterations', type=int, default=1500, help='number of iterations to optimize a batch of data impressions')
+    # File Paths
+    parser.add_argument('--real-data-path', type=Path, help='dataset root')
+    parser.add_argument('--student-path', type=Path, help='save path for student network')
+    parser.add_argument('--teacher-path', type=Path, help='save path for teacher network')
+    parser.add_argument('--synthetic-data-path', type=Path, help='save dir for synthetic data impressions')
+    # Flags
+    parser.add_argument('--pretrain', action=argparse.BooleanOptionalAction, help='Set flag to Train teacher network')
+    parser.add_argument('--synthesize', action=argparse.BooleanOptionalAction, help='Use this flag to synthesize the data impressions')
+    parser.add_argument('--distill', action=argparse.BooleanOptionalAction, help='Set flag to Train student network by distilling the teacher network')
 
     return parser.parse_args()
 
@@ -147,35 +84,26 @@ def main():
     num_labels = 10
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    teacher_factory = ArchitectureFactory(
-        name=args.teacher, 
-        input_dims=input_dims, 
-        output_dims=num_labels
-    )
-    
-    student_factory = ArchitectureFactory(
-        name=args.student, 
-        input_dims=input_dims, 
-        output_dims=num_labels
-    )
+    teacher_factory = ArchitectureFactory(name=args.teacher, input_dims=input_dims, output_dims=num_labels)
+    student_factory = ArchitectureFactory(name=args.student, input_dims=input_dims, output_dims=num_labels)
 
     # load teacher network
-    if args.train_teacher:
+    if args.pretrain:
         teacher = teacher_factory.produce()
 
         # Test Dataset
         train_dataset = torchvision.datasets.MNIST(
-                root=args.real_data_path, 
-                train=True, 
-                transform=transformer(args.dataset)[0], 
-                download=True
+            root=args.real_data_path, 
+            train=True, 
+            transform=transformer(args.dataset)[0], 
+            download=True
         )
         # Test Dataset
         eval_dataset = torchvision.datasets.MNIST(
-                root=args.real_data_path, 
-                train=False, 
-                transform=transformer(args.dataset)[1], 
-                download=True
+            root=args.real_data_path, 
+            train=False, 
+            transform=transformer(args.dataset)[1], 
+            download=True
         )
 
         teacher_trainer_hyperparams = TeacherTrainerHyperparams(
@@ -196,12 +124,13 @@ def main():
         teacher_trainer.train()
         print('[END] Train Teacher Model')
 
-    teacher = torch.load(args.teacher_path, map_location=device)
+    teacher: torch.nn.Module = torch.load(args.teacher_path, map_location=device)
     student = student_factory.produce()
 
     # perform Zero-shot Knowledge distillation
-    if args.synthesize_data:
-        zskd_hyperparams = ZeroShotKDHyperparams(
+    if args.synthesize:
+        
+        synthesizer_hyperparams = DataImpressionHyperparams(
             learning_rate=args.lr,
             iterations=args.iterations,
             batch_size=args.batch_size,
@@ -209,9 +138,10 @@ def main():
             num_samples=args.num_samples,
             beta=args.beta
         )
-        zskd = ZeroShotKDClassification(
+
+        synthesizer = DataImpressionSynthesizer(
             teacher=teacher.eval(), 
-            hyperparams=zskd_hyperparams,
+            hyperparams=synthesizer_hyperparams,
             dimensions=input_dims,
             num_classes=num_labels,
             transfer_criterion=torch.nn.BCELoss(),
@@ -223,21 +153,17 @@ def main():
         args.synthetic_data_path.parent.mkdir(parents=True, exist_ok=True)
         file_count_labelwise = np.zeros(10, dtype=int)        
 
-        for batch_idx, synthetic_batch in enumerate(zskd.iter_synthesize()):
-            print(f"Batch [{batch_idx + 1}/{zskd_hyperparams.num_samples // zskd_hyperparams.batch_size}]")
+        for batch_idx, synthetic_batch in enumerate(synthesizer.iter_synthesize()):
+            print(f"Batch [{batch_idx + 1}/{synthesizer_hyperparams.num_samples // synthesizer_hyperparams.batch_size}]")
             x = synthetic_batch[0].detach().cpu()
             y = synthetic_batch[1].argmax(dim=1).detach().cpu().numpy()
             
-            save_synthesized_images_labelwise(
-                inputs=x, 
-                labels=y, 
-                file_counts=file_count_labelwise, 
-                root_dir=args.synthetic_data_path
-            )
+            save_synthesized_images_labelwise(inputs=x, labels=y, 
+                file_counts=file_count_labelwise, root_dir=args.synthetic_data_path)
         
         print('[END] Zero Shot Knowledge Distillation For Image Classification')
 
-    if args.train_student:
+    if args.distill:
         # train student network
 
         # Synthetic Dataset

@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 
 from zskd.class_sim_matrix import compute_class_similarity_matrix
-from zskd.hyperparams import ZeroShotKDHyperparams
+from zskd.hyperparams import DataImpressionHyperparams
 from zskd.classifier_weights import extract_classifier_weights2
 
 
@@ -14,7 +14,7 @@ ExtractClassifierWeightsFn = Callable[[torch.nn.Module], torch.Tensor]
 
 
 @dataclass
-class ZeroShotKDClassification:
+class DataImpressionSynthesizer:
     """Zero Shot Knowledge Distillation for a classification task
     input:
     teacher - the pre-trained model that we want to extract a dataset from
@@ -23,7 +23,7 @@ class ZeroShotKDClassification:
     num_classes - Total number of classes
     """
     teacher: torch.nn.Module
-    hyperparams: ZeroShotKDHyperparams
+    hyperparams: DataImpressionHyperparams
     dimensions: Tuple[int, ...]
     num_classes: int
     transfer_criterion: torch.nn.Module

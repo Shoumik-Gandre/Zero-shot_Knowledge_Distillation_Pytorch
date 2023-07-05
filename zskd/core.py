@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 
 from zskd.class_sim_matrix import compute_class_similarity_matrix
-from zskd.hyperparams import ZeroShotKDHyperparams
+from zskd.hyperparams import DataImpressionHyperparams
 from zskd.classifier_weights import extract_classifier_weights2
 
 
@@ -21,7 +21,7 @@ class ZeroShotKDClassification:
     def __init__(
             self,
             teacher: torch.nn.Module,
-            hyperparams: ZeroShotKDHyperparams,
+            hyperparams: DataImpressionHyperparams,
             dimensions: Tuple[int, ...],
             num_classes: int,
             device: torch.device = torch.device('cuda')

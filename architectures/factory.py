@@ -1,5 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
+import enum
 from functools import reduce
 import operator
 from typing import Mapping, Tuple
@@ -9,6 +10,15 @@ from architectures.lenet import LeNet5
 from architectures.resmlp import ResMLP
 from architectures.resnet import ResNet18
 from architectures.rtdl_resnet import ResNet as RTDLResNet
+
+
+class Architectures(enum.Enum):
+    LeNet5 = 'lenet'
+    ResMLP = 'resmlp'
+    ResNet18 = 'resnet18'
+
+    def __str__(self):
+        return self.value
 
 
 @dataclass

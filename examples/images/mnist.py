@@ -5,7 +5,7 @@ import numpy as np
 import torch.backends.cudnn
 import torchvision
 
-from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
+from zskd import ZeroShotKDClassification, DataImpressionHyperparams
 from trainer.teacher_train import TeacherTrainerHyperparams, TeacherTrainer
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
 from trainer.utils import transformer
@@ -219,7 +219,7 @@ def main():
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
-        zskd_hyperparams = ZeroShotKDHyperparams(
+        zskd_hyperparams = DataImpressionHyperparams(
             learning_rate=args.lr,
             iterations=args.iterations,
             batch_size=args.batch_size,

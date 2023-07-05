@@ -10,7 +10,7 @@ from sklearn.preprocessing import OneHotEncoder, FunctionTransformer
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
 
-from zskd import ZeroShotKDClassification, ZeroShotKDHyperparams
+from zskd import ZeroShotKDClassification, DataImpressionHyperparams
 from trainer.teacher_train import TeacherTrainer, TeacherTrainerHyperparams
 from trainer.student_train import StudentTrainerHyperparams, StudentTrainer
 
@@ -188,7 +188,7 @@ def main():
 
     # perform Zero-shot Knowledge distillation
     if args.synthesize_data:
-        zskd_hyperparams = ZeroShotKDHyperparams(
+        zskd_hyperparams = DataImpressionHyperparams(
             learning_rate=args.lr,
             iterations=args.iterations,
             batch_size=args.batch_size,

@@ -3,7 +3,7 @@ from typing import List
 
 
 @dataclass
-class ZeroShotKDHyperparams:
+class DataImpressionHyperparams:
     learning_rate: float
     iterations: int
     batch_size: int
